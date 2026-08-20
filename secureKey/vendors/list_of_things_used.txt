@@ -1,0 +1,9 @@
+py
+django
+DRF(django rest framework)
+serializer
+APIView
+pass- make_password ( for hashing the pass)
+Postgresql
+POSTMAN 
+migrations +models +

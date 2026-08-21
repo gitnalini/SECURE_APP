@@ -36,7 +36,6 @@ services:
   - type: web
     name: securekey
     runtime: python
-    runtimeVersion: 3.11.9
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn securekey.wsgi:application"
@@ -49,6 +48,8 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: REDIS_URL
         sync: false
       - key: RABBITMQ_URL

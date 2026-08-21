@@ -37,7 +37,7 @@ services:
     name: securekey
     runtime: python
     plan: free
-    buildCommand: "pip install -r secureKey/requirements.txt"
+    buildCommand: "pip install -r secureKey/requirements.txt && python secureKey/manage.py migrate"
     startCommand: "gunicorn --chdir secureKey securekey.wsgi:application"
     envVars:
       - key: DATABASE_URL

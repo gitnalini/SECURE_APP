@@ -25,7 +25,7 @@
 #   -key:RABBITMQ_URL
 #    sync:false
 
-   
+
 databases:
   - name: securekey
     plan: free
@@ -37,8 +37,8 @@ services:
     name: securekey
     runtime: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn securekey.wsgi:application"
+    buildCommand: "pip install -r secureKey/requirements.txt"
+    startCommand: "gunicorn --chdir secureKey securekey.wsgi:application"
     envVars:
       - key: DATABASE_URL
         fromDatabase:

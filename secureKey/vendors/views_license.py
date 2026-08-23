@@ -14,6 +14,12 @@ from .telemetry import publish_event
 from .models import Vendor,Product, License
 from .throttles import FingerprintRateThrottle
 
+import logging 
+
+logger=logging.getLogger(__name__)
+
+
+
 
 class VendorLicense(APIView):
     permission_classes =[IsAuthenticated]
@@ -77,7 +83,6 @@ class VendorLicense(APIView):
         # )
 class ValidLicense(APIView): 
     throttle_classes=[FingerprintRateThrottle]
-
     throttle_scope='valid_license'
     def post(self,request):
         fingerprint_hash = request.data.get('fingerprint_hash')
@@ -95,7 +100,9 @@ class ValidLicense(APIView):
         cached_result=cache.get(cache_key)
 
         if cached_result is not None:
+            print(f"CACHE HIT: License validation for {license_key}")
             return Response(cached_result,status=status.HTTP_200_OK)
+        print(f"CACHE MISS: License validation for {license_key}")
         try:
             license = License.objects.get(license_key=license_key) 
         except License.DoesNotExist:

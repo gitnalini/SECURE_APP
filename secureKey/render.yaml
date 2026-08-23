@@ -1,31 +1,3 @@
-# databases:
-# - name: securekey
-#   plan: free
-#   databaseName: securekey
-#   user: securekey
-
-# services:
-# - type: web
-#   name: securekey
-#   runtime: python
-#   plan: free
-#   buildCommand: "pip install -r requirements.txt"
-#   startCommand: "gunicorn securekey.wsgi:application"
-#   envVars:
-#   -key:DATABASE_URL
-#    fromDatabase:
-#      name: securekey
-#      property:connectionString
-#   -key:SECRET_KEY
-#    generatedValue: true
-#   -key: DEBUG
-#    value: "False"
-#   -key:REDIS_URL
-#    sync:false
-#   -key:RABBITMQ_URL
-#    sync:false
-
-
 databases:
   - name: securekey
     plan: free
@@ -33,6 +5,12 @@ databases:
     user: securekey
 
 services:
+  - type: keyvalue
+    name: my-redis-cache
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
   - type: web
     name: securekey
     runtime: python
@@ -50,7 +28,10 @@ services:
         value: "False"
       - key: PYTHON_VERSION
         value: "3.11.11"
-      - key: REDIS_URL
-        sync: false
       - key: RABBITMQ_URL
         sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: my-redis-cache
+          property: connectionString

@@ -1,12 +1,13 @@
 import pika
 import json
 from datetime import datetime, timezone
-
+import os
 
 
 def publish_event(event_type, vendor_id, status, data):
     try:
-        connection =pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+        url=os.environ.get('RABBITMQ_URL','amqp://guest:guest@localhost:5672/')
+        connection =pika.BlockingConnection(pika.ConnectionParameters(host=url))
         channel=connection.channel()
         channel.queue_declare(queue='license_events',durable=True)
         message_payload={

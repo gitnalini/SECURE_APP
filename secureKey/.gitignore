@@ -6,3 +6,4 @@ venv/
 .vscode/
 node_modules/
 list_of_things_used.txt
+extra.txt

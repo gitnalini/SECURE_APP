@@ -14,8 +14,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 # from requests.utils import default_headers
-load_dotenv()
-print("DATABASE_URL LOADED:", os.getenv('DATABASE_URL'))
+load_dotenv() 
 from corsheaders.defaults import default_headers
 import dj_database_url  # type: ignore[import-not-found]
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

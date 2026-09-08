@@ -61,8 +61,8 @@ def verify_license(public_key_pem, fingerprint_hash, license_key):
     try:
         public_key.verify(
             signature,
-             fingerprint_hash.encode('utf-8'),
-             padding.PSS(
+            fingerprint_hash.encode('utf-8'),
+            padding.PSS(
             mgf=padding.MGF1(hashes.SHA256()),
             salt_length=padding.PSS.MAX_LENGTH
         ),

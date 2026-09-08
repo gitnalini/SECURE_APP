@@ -29,9 +29,12 @@ class VendorLicense(APIView):
         idempotency_key=request.headers.get('Idempotency-Key')
         if idempotency_key:
             cache_key = f"idempotency:{idempotency_key}"
-            cached_response=cache.get(cache_key)
-            if cached_response is not None:
-                return Response(cached_response, status=status.HTTP_201_CREATED)
+            cached_response=cache.add( cache_key, {"status": "processing"}, timeout=86400)
+            if not cached_response:
+                existing=cache.get(cache_key)
+                if existing and existing.get("status") == "processing":
+                    return Response({"error": "Duplicate request in progress, retry shortly"}, status=status.HTTP_409_CONFLICT)
+                return Response(existing, status=status.HTTP_201_CREATED)
             
         
         fingerprint_hash=request.data.get('fingerprint_hash')
@@ -81,6 +84,8 @@ class VendorLicense(APIView):
         #     status=status.HTTP_201_CREATED
 
         # )
+
+
 class ValidLicense(APIView): 
     throttle_classes=[FingerprintRateThrottle]
     throttle_scope='valid_license'
@@ -96,7 +101,7 @@ class ValidLicense(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        cache_key=f"license_valid:{license_key}"
+        cache_key=f"license_valid:{license_key}:{fingerprint_hash}"
         cached_result=cache.get(cache_key)
 
         if cached_result is not None:
@@ -104,9 +109,9 @@ class ValidLicense(APIView):
             return Response(cached_result,status=status.HTTP_200_OK)
         print(f"CACHE MISS: License validation for {license_key}")
         try:
-            license = License.objects.get(license_key=license_key) 
+            license = License.objects.get(license_key=license_key)  
         except License.DoesNotExist:
-            return Response({'error':'LICENSE NOT FOUND'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error':'LICENSE NOT FOUND'},  status=status.HTTP_404_NOT_FOUND)
         product=license.product
         vendor=product.vendor
 
@@ -148,19 +153,7 @@ class ValidLicense(APIView):
                 "expiry": str(license.expiry_date),
             }
             )
-            return Response(result_data, status=status.HTTP_401_UNAUTHORIZED)
-        # elif license.status =='expired':
-        #     result_data={'valid':False,'error':f'LICENSE EXPIRED'}
-        #     cache.set(cache_key,result_data,timeout=300)
-        #     return Response(result_data,status=status.HTTP_401_UNAUTHORIZED)
-        # elif license.status =='revoked':
-        #     result_data={'valid':False,'error':f'revoked'}
-        #     cache.set(cache_key,result_data,timeout=300)
-        #     return Response(result_data,status=status.HTTP_401_UNAUTHORIZED)
-                  
-                   
-            
-        
+            return Response(result_data, status=status.HTTP_401_UNAUTHORIZED)      
         
     #    / public_key=vendor.public_key
 
@@ -178,37 +171,20 @@ class ValidLicense(APIView):
             }
             )
         return Response(result_data, status=status.HTTP_200_OK)
-    
-
-# class RevokeLicense(APIView):
-#     permission_classes =[IsAuthenticated]
-#     def patch(self,request,license_id):
-
-#         try:
-#             license_k=License.objects.get( id=license_id)
-#         except License.DoesNotExist:
-#             return Response({'error':'LICENSE NOT FOUND'}, status=status.HTTP_404_NOT_FOUND)
-
-#         if license_k.product.vendor!=request.user.vendor: 
-#             return Response({'error': 'LICENSE NOT VALID'}, status=status.HTTP_403_FORBIDDEN)
-#         license_k.status='revoked'
-#         license_k.save()
-#         return Response({'message': 'License revoked'}, status=status.HTTP_200_OK)
-        
-        
+       
         
 class RevokeLicense(APIView):
     permission_classes=[IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope='revoke_license'
     def patch(self,request):
-        license_key=request.data.get('license_key')
+        license_key=request.data.get('license_key') 
 
         if not license_key:
             return Response({'error':'license_k is required'},status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            license_k=License.objects.get(license_key=license_key)
+            license_k=License.objects.get(license_key=license_key) 
         except License.DoesNotExist:
             return Response({'error':'LICENSE NOT FOUND'},status=status.HTTP_404_NOT_FOUND)
 
@@ -218,7 +194,7 @@ class RevokeLicense(APIView):
         # Update status in Database
         license_k.status = 'revoked'
         license_k.save()
-        cache.delete(f"license_valid:{license_key}")
+        cache.delete(f"license_valid:{license_key}:{license_k.fingerprint_hash}")
 
         publish_event(
             event_type="LICENSE_REVOKED",
